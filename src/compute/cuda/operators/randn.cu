@@ -26,6 +26,7 @@ __global__ void RandnKernel(T* data, size_t num_elements, float mean, float stdd
 // 分派函数：根据数据类型调用对应核函数
 template <typename T>
 core::Status DispatchRandn(const core::Context& ctx, core::Tensor& out, float mean, float stddev) {
+    (void)ctx; // 暂时未使用
     size_t num_elements = out.num_elements();
     if (num_elements == 0) return core::Status::OK;
 
