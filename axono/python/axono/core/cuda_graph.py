@@ -25,10 +25,11 @@
     g.capture(lambda: model(x))       # 2) 捕获
     g.replay()                        # 3) 回放 (可重复调用)
 
-    # 上下文管理器写法
-    with axono.cuda_graph() as g:
+    # 上下文管理器写法 (块内 g.output = y 指定输出)
+    with axono.cuda_graph() as g2:
         y = model(x)
-    g.replay()
+        g2.output = y
+    g2.replay()                       # 3) 回放 (可重复调用)
 
 约束 (与 CUDA 原生一致):
 - 捕获期间不能有 host<->device 拷贝、不能有显式 cudaDeviceSynchronize、
@@ -82,6 +83,11 @@ class CUDAGraph:
         """捕获时 ``fn`` 的返回值 (回放后其数据被原地更新)。"""
         return getattr(self, "_output", None)
 
+    @output.setter
+    def output(self, value):
+        """``with`` 用法: 在捕获块内 ``g.output = y`` 显式指定输出张量。"""
+        self._output = value
+
     def sync(self) -> "CUDAGraph":
         """等待图中所有 kernel 完成。"""
         self._impl.sync()
@@ -105,7 +111,17 @@ class cuda_graph:
     """上下文管理器: ``with axono.cuda_graph() as g: ...`` 捕获代码块。
 
     与 ``CUDAGraph.capture(fn)`` 等价, 但允许把捕获体写成普通语句块。
-    退出 with 时才真正结束捕获。
+    进入时开始捕获, 退出时结束捕获并完成图的实例化; 块内所有 CUDA
+    算子会编入图 (含临时张量的 stream-ordered 分配, 由
+    AutoFreeOnLaunch 支持重复回放, 无需 warmup)。
+
+    用法::
+
+        with axono.cuda_graph() as g:
+            y = model(x)
+            g.output = y          # 显式指定输出, 回放后从此读结果
+        g.replay()
+        print(g.output.to_numpy())
     """
 
     def __init__(self) -> None:
