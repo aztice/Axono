@@ -34,6 +34,7 @@ from .core.config import (
     set_inplace_enabled,
 )
 from .core.cuda_graph import CUDAGraph, cuda_graph
+from .core.operators import add, div, matmul, maximum, minimum, mul, pow, sub
 from .core.ops import (
     abs,
     argmax,
@@ -71,7 +72,6 @@ from .core.ops import (
     square,
     tanh,
 )
-from .core.operators import add, div, matmul, maximum, minimum, mul, pow, sub
 
 __version__ = "0.2.0"
 __author__ = "ByteRainLab"
